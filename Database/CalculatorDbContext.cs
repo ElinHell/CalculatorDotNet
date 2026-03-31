@@ -1,5 +1,6 @@
 ﻿namespace GaiaProject.Database
 {
+    using GaiaProject.Models;
     using Microsoft.EntityFrameworkCore;
     public class CalculatorDbContext : DbContext
     {

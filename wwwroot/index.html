@@ -1,0 +1,132 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Gaia calculator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        #display {
+            width: 160px;
+            height: 40px;
+            font-size: 20px;
+            text-align: right;
+            margin-bottom: 10px;
+        }
+
+        .button {
+            width: 40px;
+            height: 40px;
+            font-size: 18px;
+            margin: 2px;
+        }
+
+        .row {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gaia Calculator</h1>
+
+    <input type="text" id="display" disabled>
+
+    <div class="row">
+        <button class="button" onclick="press('7')">7</button>
+        <button class="button" onclick="press('8')">8</button>
+        <button class="button" onclick="press('9')">9</button>
+        <button class="button" onclick="pressOp('Divide')">/</button>
+    </div>
+    <div class="row">
+        <button class="button" onclick="press('4')">4</button>
+        <button class="button" onclick="press('5')">5</button>
+        <button class="button" onclick="press('6')">6</button>
+        <button class="button" onclick="pressOp('Multiply')">*</button>
+    </div>
+    <div class="row">
+        <button class="button" onclick="press('1')">1</button>
+        <button class="button" onclick="press('2')">2</button>
+        <button class="button" onclick="press('3')">3</button>
+        <button class="button" onclick="pressOp('Subtract')">-</button>
+    </div>
+    <div class="row">
+        <button class="button" onclick="press('0')">0</button>
+        <button class="button" onclick="clearDisplay()">C</button>
+        <button class="button" onclick="calculate()">=</button>
+        <button class="button" onclick="pressOp('Add')">+</button>
+    </div>
+
+    <h3>Last operations in this month:</h3>
+    <ul id="history"></ul>
+    <h3>Summary of operations in this month: <span id="count"></span></h3>
+
+    <script>
+        let a = null;
+        let b = null;
+        let operation = null;
+        let enteringA = true;
+
+        function press(num) {
+            const display = document.getElementById('display');
+            display.value += num;
+        }
+
+        function pressOp(op) {
+            const display = document.getElementById('display');
+            if (enteringA) {
+                a = parseFloat(display.value);
+                enteringA = false;
+                display.value = '';
+                operation = op;
+            }
+        }
+
+        function clearDisplay() {
+            document.getElementById('display').value = '';
+            a = null;
+            b = null;
+            operation = null;
+            enteringA = true;
+        }
+
+        async function calculate() {
+            const display = document.getElementById('display');
+            if (!a || !operation) return;
+            b = parseFloat(display.value);
+
+            const response = await fetch('/Calculator/calculate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ a, b, operation })
+            });
+
+            const data = await response.json();
+            console.log(data);
+
+            display.value = data.result;
+
+            // show history and count
+            const history = document.getElementById('history');
+            history.innerHTML = '';
+
+            if (data.lastOperations && Array.isArray(data.lastOperations)) {
+                data.lastOperations.forEach(op => {
+                    const li = document.createElement('li');
+                    li.textContent = `${op.a} ${op.operation} ${op.b} = ${op.result} (${new Date(op.date).toLocaleString()})`;
+                    history.appendChild(li);
+                });
+            }
+
+            document.getElementById('count').textContent = data.countThisMonth;
+
+            // preparing for new calculation
+            a = data.result;
+            b = null;
+            operation = null;
+            enteringA = false;
+        }</script>
+</body>
+</html>
